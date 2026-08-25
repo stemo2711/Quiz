@@ -778,9 +778,22 @@ function renderPresenterEnd(scores){
    TEAM VIEW
    ============================================================ */
 let teamSubmittedFor = ""; // tracks "roundIdx-questionIdx" already submitted this session
+let teamLastKey = "";       // last (phase-round-question) we fully rendered
+let teamInputActive = false; // true while an unsubmitted answer form is on screen
 
-async function renderTeam(){
+async function renderTeam(force){
   const state = await getState();
+  const key = `${state.phase}-${state.roundIdx}-${state.questionIdx}`;
+
+  // Skip the automatic poll re-render while the person is actively filling in
+  // an answer (radio/select/text) — otherwise it gets wiped every ~1.2s before
+  // they can hit "Invia". Manual actions (button clicks) always pass force=true.
+  if(!force && teamInputActive && key === teamLastKey){
+    return;
+  }
+  teamLastKey = key;
+  if(state.phase !== "question"){ teamInputActive = false; }
+
   const scores = await getScores();
   const teamKey = ROLE; // 'team1' | 'team2'
   const badgeClass = ROLE === 'team1' ? 't1' : 't2';
@@ -831,6 +844,7 @@ async function renderTeamQuestion(state, shell){
   const alreadySubmitted = existing[ROLE] !== undefined;
 
   if(alreadySubmitted){
+    teamInputActive = false;
     app.innerHTML = shell(`
       <div class="confirm">
         <div class="check">✅</div>
@@ -839,6 +853,8 @@ async function renderTeamQuestion(state, shell){
       </div>`);
     return;
   }
+
+  teamInputActive = true;
 
   if(round.key === "mc"){
     const q = QUIZ.mc[state.questionIdx];
@@ -873,7 +889,7 @@ async function renderTeamQuestion(state, shell){
       const ans = await getShared(QKEY(state.roundIdx, state.questionIdx), {});
       ans[ROLE] = selected;
       await setShared(QKEY(state.roundIdx, state.questionIdx), ans);
-      lastRenderedKey=""; renderTeam();
+      teamInputActive = false; teamLastKey = ""; renderTeam(true);
     };
   } else if(round.key === "assoc"){
     const usedActors = new Set();
@@ -900,7 +916,7 @@ async function renderTeamQuestion(state, shell){
       const ans = await getShared(QKEY(state.roundIdx, state.questionIdx), {});
       ans[ROLE] = map;
       await setShared(QKEY(state.roundIdx, state.questionIdx), ans);
-      lastRenderedKey=""; renderTeam();
+      teamInputActive = false; teamLastKey = ""; renderTeam(true);
     };
   } else if(round.key === "images"){
     const p = QUIZ.images[state.questionIdx];
@@ -918,7 +934,7 @@ async function renderTeamQuestion(state, shell){
       const ans = await getShared(QKEY(state.roundIdx, state.questionIdx), {});
       ans[ROLE] = val;
       await setShared(QKEY(state.roundIdx, state.questionIdx), ans);
-      lastRenderedKey=""; renderTeam();
+      teamInputActive = false; teamLastKey = ""; renderTeam(true);
     };
   }
 }
