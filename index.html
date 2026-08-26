@@ -576,7 +576,7 @@ function renderPresenterQuestion(state, scores){
       <div class="qnum">ASSOCIAZIONI</div>
       <div class="qtext display" style="font-size:22px;">Associa ogni personaggio all'attore che lo ha interpretato</div>
       <div class="assoc-cols">
-        <div class="assoc-col"><h4>Personaggio</h4><ol>${shuffledActorsForPresenter().map(actor=>`<option value="${actor}">${actor}</option>`).join('')}</ol></div>
+        <div class="assoc-col"><h4>Personaggio</h4><ol>${QUIZ.assoc.pairs.map(p=>`<li>${p.char}</li>`).join('')}</ol></div>
         <div class="assoc-col"><h4>Attore (in ordine sparso)</h4><ol>${shuffledActorsForPresenter().map(a=>`<li>${a}</li>`).join('')}</ol></div>
       </div>
       <p style="margin-top:16px; color:var(--text-dim); font-size:14px;">Le squadre rispondono dal telefono scegliendo l'attore per ciascun personaggio.</p>
@@ -981,7 +981,7 @@ async function renderTeamQuestion(state, shell){
             <label>${p.char}</label>
             <select data-i="${i}">
               <option value="">— scegli l'attore —</option>
-              ${QUIZ.assoc.pairs.map(pp=>`<option value="${pp.actor}">${pp.actor}</option>`).join('')}
+              ${shuffledActorsForPresenter().map(actor=>`<option value="${actor}">${actor}</option>`).join('')}
             </select>
           </div>`).join('')}
       </div>
