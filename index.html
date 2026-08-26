@@ -241,19 +241,68 @@ const QUIZ = {
     ]
   },
   images:[
-    {name:"Salvador Dalí", country:"Spagna", wiki_it:"Salvador Dalí"},
-    {name:"Diana Spencer (Lady Diana)", country:"Inghilterra", wiki_it:"Diana, principessa del Galles"},
-    {name:"Freddie Mercury", country:"Zanzibar / Tanzania", wiki_it:"Freddie Mercury"},
-    {name:"Che Guevara", country:"Argentina", wiki_it:"Che Guevara"},
-    {name:"Al Capone", country:"USA", wiki_it:"Al Capone"},
-    {name:"Frida Kahlo", country:"Messico", wiki_it:"Frida Kahlo"},
-    {name:"Nikola Tesla", country:"Croazia (Impero austro-ungarico)", wiki_it:"Nikola Tesla"},
-    {name:"Audrey Hepburn", country:"Belgio", wiki_it:"Audrey Hepburn"},
-    {name:"Bob Marley", country:"Giamaica", wiki_it:"Bob Marley"},
-    {name:"Yukio Mishima", country:"Giappone", wiki_it:"Yukio Mishima"}
+    {name:"Salvador Dalí", country:"Spagna", wiki_it:"Salvador Dalí",
+     nameAliases:["salvador dali"], countryAliases:["spagna","spain"]},
+    {name:"Diana Spencer (Lady Diana)", country:"Inghilterra", wiki_it:"Diana, principessa del Galles",
+     nameAliases:["diana spencer","lady diana","diana","principessa diana","diana del galles","diana d inghilterra"],
+     countryAliases:["inghilterra","regno unito","uk","gran bretagna","england"]},
+    {name:"Freddie Mercury", country:"Zanzibar / Tanzania", wiki_it:"Freddie Mercury",
+     nameAliases:["freddie mercury","farrokh bulsara"], countryAliases:["zanzibar","tanzania"]},
+    {name:"Che Guevara", country:"Argentina", wiki_it:"Che Guevara",
+     nameAliases:["che guevara","ernesto che guevara","ernesto guevara"], countryAliases:["argentina"]},
+    {name:"Al Capone", country:"USA", wiki_it:"Al Capone",
+     nameAliases:["al capone","alphonse capone","alfonso capone"],
+     countryAliases:["usa","stati uniti","stati uniti d america","america"]},
+    {name:"Frida Kahlo", country:"Messico", wiki_it:"Frida Kahlo",
+     nameAliases:["frida kahlo"], countryAliases:["messico","mexico"]},
+    {name:"Nikola Tesla", country:"Croazia (Impero austro-ungarico)", wiki_it:"Nikola Tesla",
+     nameAliases:["nikola tesla","tesla"],
+     countryAliases:["croazia","impero austro ungarico","austria ungheria","impero austro-ungarico"]},
+    {name:"Pier Paolo Pasolini", country:"Italia", wiki_it:"Pier Paolo Pasolini",
+     nameAliases:["pier paolo pasolini","pasolini"], countryAliases:["italia"]},
+    {name:"Jurij Gagarin", country:"Russia (URSS)", wiki_it:"Jurij Gagarin",
+     nameAliases:["jurij gagarin","yuri gagarin","iuri gagarin","juri gagarin"],
+     countryAliases:["russia","urss","unione sovietica","ussr"]},
+    {name:"Marie Curie", country:"Polonia", wiki_it:"Marie Curie",
+     nameAliases:["marie curie","maria curie","marie sklodowska curie","maria sklodowska curie"],
+     countryAliases:["polonia","poland"]}
   ]
 };
 const LETTERS = ["A","B","C","D"];
+
+/* ---------- fuzzy text matching (accents/apostrophes/case/typo tolerant) ---------- */
+function normalizeText(s){
+  return (s||"")
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'') // strip accents
+    .toLowerCase()
+    .replace(/['’`.,\-\/]/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+function levenshtein(a,b){
+  const m=a.length, n=b.length;
+  if(m===0) return n; if(n===0) return m;
+  const dp = Array.from({length:m+1},()=>new Array(n+1).fill(0));
+  for(let i=0;i<=m;i++) dp[i][0]=i;
+  for(let j=0;j<=n;j++) dp[0][j]=j;
+  for(let i=1;i<=m;i++){
+    for(let j=1;j<=n;j++){
+      dp[i][j] = a[i-1]===b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    }
+  }
+  return dp[m][n];
+}
+function fuzzyMatch(input, aliases){
+  const norm = normalizeText(input);
+  if(!norm) return false;
+  for(const alias of aliases){
+    const a = normalizeText(alias);
+    if(norm === a) return true;
+    const maxDist = a.length > 8 ? 2 : (a.length > 3 ? 1 : 0);
+    if(levenshtein(norm, a) <= maxDist) return true;
+  }
+  return false;
+}
 
 // Build a flat ordered list of "rounds" with question counts
 const ROUNDS = [
@@ -615,8 +664,20 @@ async function gradeAndReveal(state, round){
     });
     await setShared(GKEY(state.roundIdx,state.questionIdx), grade);
     await setScores(scores);
+  } else if(round.key === "images"){
+    const p = QUIZ.images[state.questionIdx];
+    const grade = {};
+    ['team1','team2'].forEach(t=>{
+      if(ans[t]){
+        const nameOk = fuzzyMatch(ans[t].name, p.nameAliases);
+        const countryOk = fuzzyMatch(ans[t].country, p.countryAliases);
+        grade[t] = { name: nameOk?'correct':'wrong', country: countryOk?'correct':'wrong' };
+        scores[t] = (scores[t]||0) + (nameOk?1:-1) + (countryOk?1:-1);
+      }
+    });
+    await setShared(GKEY(state.roundIdx,state.questionIdx), grade);
+    await setScores(scores);
   }
-  // images round: grading is manual, handled in reveal screen buttons
 
   await setState({...state, phase:"reveal"});
   lastRenderedKey=""; renderPresenter();
@@ -671,17 +732,24 @@ async function renderPresenterReveal(state, scores){
     setTimeout(()=> setImgWhenReady(document.getElementById('hist-img-reveal'), p.wiki_it), 0);
     extraHTML = `
       <div class="answer-panels">
-        ${['team1','team2'].map(t=>`
+        ${['team1','team2'].map(t=>{
+          if(!ans[t]) return `<div class="ans-card ${t==='team1'?'t1':'t2'}"><h5>${t==='team1'?'🔴 Squadra 1':'🔵 Squadra 2'}</h5><div class="val">Nessuna risposta inviata</div></div>`;
+          const g = grade[t] || {name:null, country:null};
+          return `
           <div class="ans-card ${t==='team1'?'t1':'t2'}">
             <h5>${t==='team1'?'🔴 Squadra 1':'🔵 Squadra 2'}</h5>
-            <div class="val">${ans[t] ? '"' + ans[t] + '"' : 'Nessuna risposta inviata'}</div>
-            ${ans[t] ? `
-              <div class="grade-btns">
-                <button class="pick-ok ${grade[t]==='correct'?'active':''}" data-team="${t}" data-verdict="correct">✔ Corretto (+1)</button>
-                <button class="pick-no ${grade[t]==='wrong'?'active':''}" data-team="${t}" data-verdict="wrong">✘ Sbagliato (-1)</button>
-              </div>` : ''}
-            ${grade[t] ? `<span class="status-tag ${grade[t]==='correct'?'ok':'no'}">${grade[t]==='correct'?'✔ Assegnato':'✘ Assegnato'}</span>` : ''}
-          </div>`).join('')}
+            <div class="val">Nome: "${ans[t].name||''}"</div>
+            <div class="grade-btns">
+              <button class="pick-ok ${g.name==='correct'?'active':''}" data-team="${t}" data-field="name" data-verdict="correct">✔ Nome ok</button>
+              <button class="pick-no ${g.name==='wrong'?'active':''}" data-team="${t}" data-field="name" data-verdict="wrong">✘ Nome no</button>
+            </div>
+            <div class="val" style="margin-top:10px;">Nazione: "${ans[t].country||''}"</div>
+            <div class="grade-btns">
+              <button class="pick-ok ${g.country==='correct'?'active':''}" data-team="${t}" data-field="country" data-verdict="correct">✔ Nazione ok</button>
+              <button class="pick-no ${g.country==='wrong'?'active':''}" data-team="${t}" data-field="country" data-verdict="wrong">✘ Nazione no</button>
+            </div>
+          </div>`;
+        }).join('')}
       </div>`;
   }
 
@@ -711,14 +779,24 @@ async function renderPresenterReveal(state, scores){
 
   app.querySelectorAll('.grade-btns button').forEach(btn=>{
     btn.onclick = async ()=>{
-      const team = btn.dataset.team, verdict = btn.dataset.verdict;
+      const team = btn.dataset.team, verdict = btn.dataset.verdict, field = btn.dataset.field;
       const currentGrade = await getShared(GKEY(state.roundIdx,state.questionIdx), {});
-      // undo previous grade for this team if any
       let s = await getScores();
-      if(currentGrade[team] === 'correct') s[team] -= 1;
-      if(currentGrade[team] === 'wrong') s[team] += 1;
-      currentGrade[team] = verdict;
-      s[team] += (verdict==='correct' ? 1 : -1);
+      if(field){
+        // images round: per-field (name / country) verdicts
+        if(!currentGrade[team]) currentGrade[team] = {name:null, country:null};
+        const prev = currentGrade[team][field];
+        if(prev === 'correct') s[team] -= 1;
+        if(prev === 'wrong') s[team] += 1;
+        currentGrade[team][field] = verdict;
+        s[team] += (verdict==='correct' ? 1 : -1);
+      } else {
+        // mc round: single verdict for the whole answer
+        if(currentGrade[team] === 'correct') s[team] -= 1;
+        if(currentGrade[team] === 'wrong') s[team] += 1;
+        currentGrade[team] = verdict;
+        s[team] += (verdict==='correct' ? 1 : -1);
+      }
       await setShared(GKEY(state.roundIdx,state.questionIdx), currentGrade);
       await setScores(s);
       lastRenderedKey=""; renderPresenter();
@@ -922,17 +1000,21 @@ async function renderTeamQuestion(state, shell){
     const p = QUIZ.images[state.questionIdx];
     app.innerHTML = shell(`
       <div class="team-round">Round ${state.roundIdx+1} · ${round.title}</div>
-      <div class="team-q">Chi è questo personaggio? Scrivete nome, cognome e nazione di nascita.</div>
+      <div class="team-q">Chi è questo personaggio?</div>
       <img class="team-img" id="team-hist-img">
-      <input class="team-text-input" id="text-ans" placeholder="Es: Mario Rossi, Italia">
-      <button class="btn btn-primary" id="submit-btn" style="margin-top:14px;">Invia risposta</button>
+      <label style="font-size:13px; color:var(--text-dim); display:block; margin-top:12px;">Nome e cognome</label>
+      <input class="team-text-input" id="text-ans-name" placeholder="Es: Mario Rossi" style="margin-top:6px;">
+      <label style="font-size:13px; color:var(--text-dim); display:block; margin-top:14px;">Nazione di nascita</label>
+      <input class="team-text-input" id="text-ans-country" placeholder="Es: Italia" style="margin-top:6px;">
+      <button class="btn btn-primary" id="submit-btn" style="margin-top:16px;">Invia risposta</button>
     `);
     setImgWhenReady(document.getElementById('team-hist-img'), p.wiki_it);
     document.getElementById('submit-btn').onclick = async ()=>{
-      const val = document.getElementById('text-ans').value.trim();
-      if(!val) return;
+      const nameVal = document.getElementById('text-ans-name').value.trim();
+      const countryVal = document.getElementById('text-ans-country').value.trim();
+      if(!nameVal && !countryVal) return;
       const ans = await getShared(QKEY(state.roundIdx, state.questionIdx), {});
-      ans[ROLE] = val;
+      ans[ROLE] = { name: nameVal, country: countryVal };
       await setShared(QKEY(state.roundIdx, state.questionIdx), ans);
       teamInputActive = false; teamLastKey = ""; renderTeam(true);
     };
@@ -965,11 +1047,16 @@ async function renderTeamReveal(state, shell){
       </div>`;
   } else if(round.key === "images"){
     const p = QUIZ.images[state.questionIdx];
-    const g = grade[ROLE];
+    const g = grade[ROLE] || {name:null, country:null};
+    const bothOk = g.name==='correct' && g.country==='correct';
+    const bothWrong = g.name==='wrong' && g.country==='wrong';
     resultHTML = `
       <div class="confirm">
-        <div class="check">${g==='correct' ? '✅' : g==='wrong' ? '❌' : '⏳'}</div>
-        <h3 style="color:${g==='correct' ? '#5fd68a' : g==='wrong' ? 'var(--team1)' : 'var(--text-dim)'}">${g==='correct' ? 'Corretto!' : g==='wrong' ? 'Sbagliato' : 'In attesa di correzione host'}</h3>
+        <div class="check">${bothOk ? '✅' : bothWrong ? '❌' : '🤔'}</div>
+        <h3 style="color:${bothOk ? '#5fd68a' : bothWrong ? 'var(--team1)' : 'var(--gold)'}">
+          Nome: ${g.name==='correct' ? '✔ corretto' : g.name==='wrong' ? '✘ sbagliato' : '—'} ·
+          Nazione: ${g.country==='correct' ? '✔ corretta' : g.country==='wrong' ? '✘ sbagliata' : '—'}
+        </h3>
         <p style="margin-top:10px; color:var(--text-dim);">Risposta esatta: <b style="color:var(--text)">${p.name}, ${p.country}</b></p>
       </div>`;
   }
