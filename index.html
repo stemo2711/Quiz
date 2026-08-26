@@ -258,14 +258,14 @@ const QUIZ = {
     {name:"Nikola Tesla", country:"Croazia (Impero austro-ungarico)", wiki_it:"Nikola Tesla",
      nameAliases:["nikola tesla","tesla"],
      countryAliases:["croazia","impero austro ungarico","austria ungheria","impero austro-ungarico"]},
-    {name:"Pier Paolo Pasolini", country:"Italia", wiki_it:"Pier Paolo Pasolini",
-     nameAliases:["pier paolo pasolini","pasolini"], countryAliases:["italia"]},
+    {name:"Bob Marley", country:"Giamaica", wiki_it:"Bob Marley",
+     nameAliases:["robert nesta marley","bob marley"], countryAliases:["giamaicano"]},
     {name:"Jurij Gagarin", country:"Russia (URSS)", wiki_it:"Jurij Gagarin",
      nameAliases:["jurij gagarin","yuri gagarin","iuri gagarin","juri gagarin"],
      countryAliases:["russia","urss","unione sovietica","ussr"]},
-    {name:"Marie Curie", country:"Polonia", wiki_it:"Marie Curie",
-     nameAliases:["marie curie","maria curie","marie sklodowska curie","maria sklodowska curie"],
-     countryAliases:["polonia","poland"]}
+    {name:"Yukio Mishima", country:"Giappone", wiki_it:"Yukio Mishima",
+     nameAliases:["yukio mishima","mishima","Kimitake Hiraoka"],
+     countryAliases:["giappone","japan"]}
   ]
 };
 const LETTERS = ["A","B","C","D"];
@@ -575,7 +575,7 @@ function renderPresenterQuestion(state, scores){
       <div class="qnum">ASSOCIAZIONI</div>
       <div class="qtext display" style="font-size:22px;">Associa ogni personaggio all'attore che lo ha interpretato</div>
       <div class="assoc-cols">
-        <div class="assoc-col"><h4>Personaggio</h4><ol>${QUIZ.assoc.pairs.map(p=>`<li>${p.char}</li>`).join('')}</ol></div>
+        <div class="assoc-col"><h4>Personaggio</h4><ol>${shuffledActorsForPresenter().map(actor=>`<option value="${actor}">${actor}</option>`).join('')}</ol></div>
         <div class="assoc-col"><h4>Attore (in ordine sparso)</h4><ol>${shuffledActorsForPresenter().map(a=>`<li>${a}</li>`).join('')}</ol></div>
       </div>
       <p style="margin-top:16px; color:var(--text-dim); font-size:14px;">Le squadre rispondono dal telefono scegliendo l'attore per ciascun personaggio.</p>
@@ -1003,9 +1003,9 @@ async function renderTeamQuestion(state, shell){
       <div class="team-q">Chi è questo personaggio?</div>
       <img class="team-img" id="team-hist-img">
       <label style="font-size:13px; color:var(--text-dim); display:block; margin-top:12px;">Nome e cognome</label>
-      <input class="team-text-input" id="text-ans-name" placeholder="Es: Mario Rossi" style="margin-top:6px;">
+      <input class="team-text-input" id="text-ans-name" placeholder="Es: Mario Rossi" autocomplete="off" style="margin-top:6px;">
       <label style="font-size:13px; color:var(--text-dim); display:block; margin-top:14px;">Nazione di nascita</label>
-      <input class="team-text-input" id="text-ans-country" placeholder="Es: Italia" style="margin-top:6px;">
+      <input class="team-text-input" id="text-ans-country" placeholder="Es: Italia" autocomplete="off" style="margin-top:6px;">
       <button class="btn btn-primary" id="submit-btn" style="margin-top:16px;">Invia risposta</button>
     `);
     setImgWhenReady(document.getElementById('team-hist-img'), p.wiki_it);
