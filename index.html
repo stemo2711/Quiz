@@ -191,6 +191,10 @@
 /* ============================================================
    DATA
    ============================================================ */
+const QUIZ_INTRO = {
+  title: "Personaggi Storici",
+  description: "Il tema di questo quiz è dedicata a personaggi storici di diverse epoche e ambiti, politica, scienza, arte, criminalità e sport. Le domande verteranno su fatti biografici, curiosità, primati e comuni fraintendimenti storici."
+};  
 const QUIZ = {
   mc: [
     {
@@ -220,7 +224,7 @@ const QUIZ = {
       correct:0
     },
     {
-      q:"Come si chiama il film del 2008 sulla storia di un noto politico italiano?",
+      q:"Come si chiama il film del 2008 ispirato alla vita di questo noto politico italiano?",
       img:{wiki_it:"Giulio Andreotti", wiki_en:"Giulio Andreotti"},
       opts:["L'uomo in più","Le mani sulla città","Il Divo","Todo Modo"],
       correct:2
@@ -245,19 +249,19 @@ const QUIZ = {
     {name:"Salvador Dalí", country:"Spagna", wiki_it:"Salvador Dalí",
      nameAliases:["salvador dali"], countryAliases:["spagna","spain"]},
     {name:"Diana Spencer (Lady Diana)", country:"Inghilterra", wiki_it:"Diana, principessa del Galles",
-     nameAliases:["diana spencer","lady diana","diana","principessa diana","diana del galles","diana d inghilterra"],
+     nameAliases:["diana spencer"],
      countryAliases:["inghilterra","regno unito","uk","gran bretagna","england"]},
     {name:"Freddie Mercury", country:"Zanzibar / Tanzania", wiki_it:"Freddie Mercury",
      nameAliases:["freddie mercury","farrokh bulsara"], countryAliases:["zanzibar","tanzania"]},
-    {name:"Che Guevara", country:"Argentina", wiki_it:"Che Guevara",
-     nameAliases:["che guevara","ernesto che guevara","ernesto guevara"], countryAliases:["argentina"]},
+    {name:"Ernesto 'Che' Guevara", country:"Argentina", wiki_it:"Che Guevara",
+     nameAliases:["ernesto che guevara","ernesto guevara"], countryAliases:["argentina"]},
     {name:"Al Capone", country:"USA", wiki_it:"Al Capone",
      nameAliases:["al capone","alphonse capone","alfonso capone"],
      countryAliases:["usa","stati uniti","stati uniti d america","america"]},
     {name:"Frida Kahlo", country:"Messico", wiki_it:"Frida Kahlo",
      nameAliases:["frida kahlo"], countryAliases:["messico","mexico"]},
     {name:"Nikola Tesla", country:"Croazia (Impero austro-ungarico)", wiki_it:"Nikola Tesla",
-     nameAliases:["nikola tesla","tesla"],
+     nameAliases:["nikola tesla"],
      countryAliases:["croazia","impero austro ungarico","austria ungheria","impero austro-ungarico"]},
     {name:"Bob Marley", country:"Giamaica", wiki_it:"Bob Marley",
      nameAliases:["robert nesta marley","bob marley"], countryAliases:["giamaicano"]},
