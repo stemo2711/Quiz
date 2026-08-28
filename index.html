@@ -467,6 +467,7 @@ async function renderPresenter(){
   lastRenderedKey = key;
 
   if(state.phase === "lobby") return renderPresenterLobby(scores);
+  if(state.phase === "quiz-intro") return renderPresenterQuizIntro(scores);
   if(state.phase === "round-intro") return renderPresenterRoundIntro(state, scores);
   if(state.phase === "question") return renderPresenterQuestion(state, scores);
   if(state.phase === "reveal") return renderPresenterReveal(state, scores);
@@ -545,7 +546,7 @@ function renderPresenterQuizIntro(scores){
   };
   document.getElementById('reset-btn').onclick = resetGame;
 }
-
+  
 function renderPresenterRoundIntro(state, scores){
   const round = ROUNDS[state.roundIdx];
   app.innerHTML = `
