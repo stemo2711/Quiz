@@ -509,7 +509,7 @@ function renderPresenterLobby(scores){
     const btn = document.getElementById('start-btn');
     btn.disabled = true; btn.textContent = "Avvio...";
     try{
-      await setState({phase:"round-intro", roundIdx:0, questionIdx:0});
+      await setState({phase:"quiz-intro", roundIdx:0, questionIdx:0});
       const check = await getState();
       if(check.phase !== "round-intro") throw new Error("Lo stato non è stato salvato correttamente.");
       lastRenderedKey=""; renderPresenter();
